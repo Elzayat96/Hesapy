@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>حسابي — اليومية والمصاريف والدخل الإضافي</title>
+
+<!-- ===== PWA META ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f9d76">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="حسابي">
+<meta name="description" content="تطبيق لمتابعة اليومية والتيبس والمصاريف والجمعية والمديونيات">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#eef3f1; --card:#fff; --pri:#0f9d76; --pri-d:#0b7a5b;
+  --accent:#ff7a59; --red:#e04b4b; --warn:#f0a500;
+  --txt:#1f2d2a; --muted:#6b8079; --line:#e4ece9; --r:16px;
+}
+body{font-family:"Segoe UI",Tahoma,system-ui,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:86px;font-size:15px;overscroll-behavior-y:none}
+.app{max-width:560px;margin:0 auto}
+header{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,var(--pri),var(--pri-d));color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 20px 20px;box-shadow:0 4px 16px rgba(15,157,118,.25);padding-top:calc(14px + env(safe-area-inset-top))}
+header h1{font-size:18px;font-weight:700}
+.balance-chip{background:rgba(255,255,255,.18);padding:6px 12px;border-radius:20px;font-size:13px}
+.balance-chip b{font-size:15px}
+main{padding:14px}
+.tab{display:none;animation:fade .2s}
+.tab.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(20,60,50,.06)}
+.card h3{font-size:15px;margin-bottom:12px;color:var(--pri-d)}
+.row{display:flex;align-items:center}
+.gap{gap:8px}
+.flex{flex:1}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.btn{border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;background:#eef3f1;color:var(--txt)}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--pri);color:#fff}
+.btn.pri:hover{background:var(--pri-d)}
+.btn.ghost{background:#f0f5f3;color:var(--txt);border:1px solid var(--line)}
+.btn.red{background:#fdecec;color:var(--red)}
+.btn.sm{padding:8px 10px;font-size:13px;border-radius:10px}
+input,select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#fafcfb;margin-top:6px}
+input:focus,select:focus{outline:none;border-color:var(--pri)}
+label{font-size:13px;color:var(--muted);display:block;margin-top:12px;font-weight:600}
+.pill{display:inline-block;padding:8px 12px;border-radius:10px;font-size:13px;background:#f0f5f3;font-weight:600}
+.pill.ok{background:#e6f7f0;color:var(--pri-d)}
+.pill.warn{background:#fff6e0;color:#9a6b00}
+.pill.red{background:#fdecec;color:var(--red)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#f7faf9;border-radius:12px;padding:12px;text-align:center}
+.stat .v{font-size:18px;font-weight:800;color:var(--pri-d)}
+.stat .k{font-size:12px;color:var(--muted);margin-top:3px}
+.stat.red .v{color:var(--red)}
+.stat.orange .v{color:var(--accent)}
+.big-bal{text-align:center;padding:8px 0 4px}
+.big-bal .num{font-size:34px;font-weight:800;color:var(--pri-d)}
+.big-bal .lbl{font-size:13px;color:var(--muted)}
+.item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:10px}
+.item:last-child{border:none}
+.item .t{font-size:14px;font-weight:600}
+.item .s{font-size:12px;color:var(--muted);margin-top:2px}
+.item .amt{font-weight:700;white-space:nowrap}
+.item .amt.out{color:var(--red)}
+.item .amt.in{color:var(--pri)}
+.del{background:none;border:none;color:#c0ccc8;font-size:18px;cursor:pointer;padding:0 4px}
+.del:hover{color:var(--red)}
+.bar{height:9px;background:#eaf1ef;border-radius:6px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),#3ecfa3);border-radius:6px;transition:.4s}
+.bar.warn>i{background:linear-gradient(90deg,var(--warn),#ffcf5c)}
+.bar.red>i{background:linear-gradient(90deg,var(--red),#ff8a8a)}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:22px 0}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:8px 4px 10px;box-shadow:0 -3px 16px rgba(20,60,50,.08);z-index:30;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+nav button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted);cursor:pointer;font-family:inherit;padding:4px 6px;border-radius:10px;flex:1;font-weight:600}
+nav button .ic{font-size:19px;line-height:1}
+nav button.active{color:var(--pri);background:#eaf7f2}
+.modal{position:fixed;inset:0;background:rgba(15,35,30,.5);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:0}
+.modal.show{display:flex}
+.modal-inner{background:#fff;width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:20px;max-height:90vh;overflow:auto;animation:up .22s}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.modal-inner h3{font-size:17px;margin-bottom:6px;color:var(--pri-d)}
+.hint{font-size:12px;color:var(--muted);line-height:1.6}
+.tip{display:flex;gap:8px;padding:11px 12px;border-radius:12px;font-size:13px;line-height:1.65;margin-bottom:8px}
+.tip.ok{background:#e9f8f1;color:#0a6b52}
+.tip.warn{background:#fff7e3;color:#8a6200}
+.tip.red{background:#fdeeee;color:#b83232}
+.tip.info{background:#eaf3fd;color:#1f5c96}
+.sec-title{font-size:13px;font-weight:700;color:var(--muted);margin:16px 0 8px}
+.install-banner{display:none;position:fixed;bottom:80px;left:14px;right:14px;max-width:532px;margin:0 auto;background:#1f2d2a;color:#fff;padding:12px 14px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50;align-items:center;gap:10px}
+.install-banner.show{display:flex}
+.install-banner p{flex:1;font-size:13px;line-height:1.5}
+.install-banner button{border:none;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+.install-banner .yes{background:var(--pri);color:#fff}
+.install-banner .no{background:transparent;color:#aaa;font-size:18px;padding:4px 8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>💰 حسابي</h1>
+    <div class="balance-chip">الرصيد: <b id="hdrBalance">0</b> ج.م</div>
+  </header>
+
+  <main>
+    <!-- الرئيسية -->
+    <section id="tab-home" class="tab active">
+      <div class="card">
+        <div class="big-bal">
+          <div class="num" id="homeBalance">0</div>
+          <div class="lbl">الفلوس اللي معاك دلوقتي (كل الوقت)</div>
+        </div>
+        <div class="stat-grid mt12">
+          <div class="stat"><div class="v" id="hbIncome">0</div><div class="k">إجمالي الدخل</div></div>
+          <div class="stat red"><div class="v" id="hbExp">0</div><div class="k">إجمالي المصاريف</div></div>
+          <div class="stat orange"><div class="v" id="hbJam">0</div><div class="k">مدفوع جمعية</div></div>
+          <div class="stat orange"><div class="v" id="hbDebt">0</div><div class="k">مسدد مديونيات</div></div>
+        </div>
+        <div class="item" style="border-top:1px solid var(--line);margin-top:8px">
+          <div class="t">دخل إضافي (إجمالي)</div>
+          <div class="amt in" id="hbOther">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>النهارده</h3>
+        <div id="todayBox"></div>
+      </div>
+
+      <div class="card">
+        <h3>ملخص الشهر الحالي</h3>
+        <div class="stat-grid">
+          <div class="stat"><div class="v" id="hmWork">0</div><div class="k">أيام شغل</div></div>
+          <div class="stat"><div class="v" id="hmOff">0</div><div class="k">أيام راحة</div></div>
+          <div class="stat"><div class="v" id="hmIncome">0</div><div class="k">دخل الشهر</div></div>
+          <div class="stat red"><div class="v" id="hmExp">0</div><div class="k">مصاريف الشهر</div></div>
+        </div>
+        <div class="item mt8" style="border-top:1px solid var(--line)">
+          <div class="t">دخل إضافي الشهر ده</div>
+          <div class="amt in" id="hmOther">0</div>
+        </div>
+        <div class="mt12">
+          <div class="row" style="justify-content:space-between;font-size:13px">
+            <span style="color:var(--muted);font-weight:600">جمعية الشهر</span>
+            <span id="hmJamTxt" style="font-weight:700">0 / 0</span>
+          </div>
+          <div class="bar" id="hmJamBar"><i style="width:0%"></i></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>نصيحة سريعة</h3>
+        <div id="homeTip"></div>
+      </div>
+    </section>
+
+    <!-- اليوم -->
+    <section id="tab-day" class="tab">
+      <div class="card">
+        <h3>تسجيل يوم</h3>
+        <p class="hint">اضغط على اليوم اللي عايز تسجله. لو روحت شغل هيسألك خدت تيبس ولا لا.</p>
+        <div class="mt12"><label>اختار التاريخ</label><input type="date" id="dayPicker"></div>
+        <div class="row gap mt12">
+          <button class="btn pri flex" onclick="pickWork(true)">✅ روحت الشغل</button>
+          <button class="btn ghost flex" onclick="pickWork(false)">🏠 قعدت في البيت</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>سجل الأيام</h3>
+        <div id="dayList"></div>
+      </div>
+    </section>
+
+    <!-- المصاريف -->
+    <section id="tab-exp" class="tab">
+      <div class="card">
+        <h3>إضافة مصروف</h3>
+        <label>التاريخ</label><input type="date" id="exDate">
+        <label>النوع</label>
+        <select id="exCat">
+          <option>أكل وشرب</option><option>مواصلات</option><option>فواتير</option>
+          <option>إيجار</option><option>صحة</option><option>ملابس</option>
+          <option>ترفيه</option><option>تعليم</option><option>بيت</option><option>أخرى</option>
+        </select>
+        <label>المبلغ</label><input type="number" id="exAmount" placeholder="0" inputmode="decimal">
+        <label>ملاحظة (اختياري)</label><input type="text" id="exNote" placeholder="مثلاً: غدا في الشغل">
+        <button class="btn pri mt16" style="width:100%" onclick="addExpense()">➕ إضافة المصروف</button>
+      </div>
+      <div class="card">
+        <h3>مصاريف الشهر الحالي</h3>
+        <div id="expByCat"></div>
+        <div class="sec-title">آخر المصاريف</div>
+        <div id="expList"></div>
+      </div>
+    </section>
+
+    <!-- الجمعية -->
+    <section id="tab-jam" class="tab">
+      <div class="card">
+        <h3>الجمعية</h3>
+        <label>قيمة الجمعية الشهرية</label>
+        <input type="number" id="jamMonthly" onchange="setJamMonthly(this.value)">
+        <div class="mt16" id="jamStatus"></div>
+        <label>سجّل دفعة</label>
+        <div class="row gap">
+          <input type="month" id="jamMonth" style="flex:1">
+          <input type="number" id="jamAmount" placeholder="المبلغ" style="flex:1" inputmode="decimal">
+        </div>
+        <button class="btn pri mt12" style="width:100%" onclick="addJamPayment()">💾 تسجيل الدفعة</button>
+      </div>
+      <div class="card">
+        <h3>سجل الدفعات</h3>
+        <div id="jamList"></div>
+      </div>
+    </section>
+
+    <!-- المديونيات -->
+    <section id="tab-debt" class="tab">
+      <div class="card">
+        <h3>إضافة مديونية</h3>
+        <label>اسم المديونية / لِمين</label><input type="text" id="dbName" placeholder="مثلاً: قرض من أحمد">
+        <label>المبلغ الكلي</label><input type="number" id="dbTotal" placeholder="0" inputmode="decimal">
+        <label>عايز تسددها في كام شهر؟</label><input type="number" id="dbMonths" value="6" min="1">
+        <button class="btn pri mt16" style="width:100%" onclick="addDebt()">➕ إضافة</button>
+      </div>
+      <div class="card">
+        <h3>مديونياتك</h3>
+        <div id="debtList"></div>
+      </div>
+      <div class="card">
+        <h3>خطة السداد</h3>
+        <div id="debtPlan"></div>
+      </div>
+    </section>
+
+    <!-- دخل إضافي -->
+    <section id="tab-extra" class="tab">
+      <div class="card">
+        <h3>إضافة دخل إضافي</h3>
+        <p class="hint">أي فلوس جتلك من شغل تاني، بيع حاجة، هدية، أو أي مصدر غير اليومية والتيبس.</p>
+        <label>التاريخ</label><input type="date" id="oiDate">
+        <label>المصدر / الوصف</label><input type="text" id="oiSource" placeholder="مثلاً: شغل فرى لانس، بيع موبايل قديم">
+        <label>المبلغ</label><input type="number" id="oiAmount" placeholder="0" inputmode="decimal">
+        <label>ملاحظة (اختياري)</label><input type="text" id="oiNote" placeholder="تفاصيل إضافية">
+        <button class="btn pri mt16" style="width:100%" onclick="addOtherIncome()">➕ إضافة الدخل</button>
+      </div>
+      <div class="card">
+        <h3>سجل الدخل الإضافي</h3>
+        <div id="oiMonthTotal" class="pill ok mt8"></div>
+        <div id="oiList"></div>
+      </div>
+    </section>
+
+    <!-- التقارير -->
+    <section id="tab-rep" class="tab">
+      <div class="card">
+        <h3>تقرير الشهر الحالي</h3>
+        <div id="repNow"></div>
+      </div>
+      <div class="card">
+        <h3>آخر 6 شهور</h3>
+        <div id="repHistory"></div>
+      </div>
+      <div class="card">
+        <h3>💡 اقتراحات ونصائح</h3>
+        <div id="tipsBox"></div>
+      </div>
+      <div class="card">
+        <h3>النسخ الاحتياطي</h3>
+        <p class="hint">البيانات محفوظة على جهازك فقط. اعمل نسخة احتياطية من وقت للتاني.</p>
+        <div class="row gap mt12">
+          <button class="btn ghost flex" onclick="exportData()">⬇️ تصدير</button>
+          <button class="btn ghost flex" onclick="document.getElementById('importFile').click()">⬆️ استيراد</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn red mt12" style="width:100%" onclick="resetAll()">🗑️ مسح كل البيانات</button>
+      </div>
+      <div class="card">
+        <h3>الإعدادات</h3>
+        <label>اليومية الافتراضية</label>
+        <input type="number" id="setWage" onchange="setSetting('dailyWage',this.value)">
+        <label>التيبس الافتراضي</label>
+        <input type="number" id="setTip" onchange="setSetting('defaultTip',this.value)">
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button data-tab="home" class="active" onclick="go('home')"><span class="ic">🏠</span>الرئيسية</button>
+    <button data-tab="day" onclick="go('day')"><span class="ic">📅</span>اليوم</button>
+    <button data-tab="exp" onclick="go('exp')"><span class="ic">🧾</span>المصاريف</button>
+    <button data-tab="jam" onclick="go('jam')"><span class="ic">🤝</span>الجمعية</button>
+    <button data-tab="debt" onclick="go('debt')"><span class="ic">💳</span>مديونيات</button>
+    <button data-tab="extra" onclick="go('extra')"><span class="ic">💰</span>إضافي</button>
+    <button data-tab="rep" onclick="go('rep')"><span class="ic">📊</span>تقارير</button>
+  </nav>
+</div>
+
+<!-- بانر تثبيت التطبيق -->
+<div class="install-banner" id="installBanner">
+  <p>ثبّت التطبيق على شاشتك الرئيسية للوصول السريع بدون إنترنت</p>
+  <button class="yes" onclick="doInstall()">تثبيت</button>
+  <button class="no" onclick="dismissInstall()">✕</button>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal-inner" id="modalBody"></div>
+</div>
+
+<script>
+/* ============ التخزين ============ */
+const KEY = 'hesaby_v1';
+const DEF = () => ({
+  settings:{ dailyWage:400, defaultTip:50 },
+  jam3eya:{ monthly:3000, payments:[] },
+  days:{}, expenses:[], debts:[], otherIncomes:[]
+});
+let state = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return DEF();
+    const p = JSON.parse(raw);
+    const d = DEF();
+    return {
+      settings:{...d.settings, ...(p.settings||{})},
+      jam3eya:{...d.jam3eya, ...(p.jam3eya||{})},
+      days:p.days||{}, expenses:p.expenses||[], debts:p.debts||[],
+      otherIncomes:p.otherIncomes||[]
+    };
+  }catch(e){ return DEF(); }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ============ أدوات ============ */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const fmt = n => (Math.round((+n||0)*100)/100).toLocaleString('en-US');
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dKey = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const mKey = d => d.getFullYear()+'-'+pad(d.getMonth()+1);
+const todayK = () => dKey(new Date());
+const thisM = () => mKey(new Date());
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+function prettyDate(k){ const [y,m,d]=k.split('-').map(Number); const dt=new Date(y,m-1,d); return DAYS[dt.getDay()]+' '+d+' '+MONTHS[m-1]+' '+y; }
+function prettyMonth(k){ const [y,m]=k.split('-').map(Number); return MONTHS[m-1]+' '+y; }
+function lastMonths(n){ const a=[]; const d=new Date(); d.setDate(1); for(let i=0;i<n;i++){ a.push(mKey(d)); d.setMonth(d.getMonth()-1);} return a; }
+
+/* ============ الحسابات ============ */
+function overall(){
+  let wageTips = 0;
+  for(const v of Object.values(state.days)) if(v.worked) wageTips += (+v.wage||0)+(+v.tip||0);
+  const otherInc = state.otherIncomes.reduce((s,i)=>s+(+i.amount||0),0);
+  const income = wageTips + otherInc;
+  const exp  = state.expenses.reduce((s,e)=>s+(+e.amount||0),0);
+  const jam  = state.jam3eya.payments.reduce((s,p)=>s+(+p.amount||0),0);
+  let debt=0; state.debts.forEach(d=>(d.payments||[]).forEach(p=> debt += +p.amount||0));
+  return { income, wageTips, otherInc, exp, jam, debt, balance: income-exp-jam-debt };
+}
+function statsOf(mk){
+  let worked=0, off=0, wage=0, tips=0; const dayList=[];
+  for(const [k,v] of Object.entries(state.days)){
+    if(!k.startsWith(mk)) continue;
+    dayList.push({date:k, ...v});
+    if(v.worked){ worked++; wage += +v.wage||0; tips += +v.tip||0; } else off++;
+  }
+  dayList.sort((a,b)=>b.date.localeCompare(a.date));
+  const expenses = state.expenses.filter(e=>e.date.startsWith(mk)).sort((a,b)=>b.date.localeCompare(a.date));
+  const expTotal = expenses.reduce((s,e)=>s+(+e.amount||0),0);
+  const otherIncomes = state.otherIncomes.filter(i=>i.date.startsWith(mk));
+  const otherTotal = otherIncomes.reduce((s,i)=>s+(+i.amount||0),0);
+  const jamPay = state.jam3eya.payments.filter(p=>p.month===mk);
+  const jamTotal = jamPay.reduce((s,p)=>s+(+p.amount||0),0);
+  let debtTotal=0;
+  state.debts.forEach(d=>(d.payments||[]).forEach(p=>{ if(p.date.startsWith(mk)) debtTotal += +p.amount||0; }));
+  const income = wage+tips+otherTotal;
+  return { worked, off, wage, tips, otherTotal, otherIncomes, income, expTotal, expenses, jamTotal, jamPay, debtTotal,
+           net: income-expTotal-jamTotal-debtTotal, dayList };
+}
+function debtInfo(d){
+  const paid = (d.payments||[]).reduce((s,p)=>s+(+p.amount||0),0);
+  const remain = Math.max(0, (+d.total||0) - paid);
+  return { paid, remain, pct: d.total>0 ? Math.min(100, paid/d.total*100) : 0 };
+}
+
+/* ============ التنقل ============ */
+function go(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector('nav button[data-tab="'+tab+'"]').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ============ المودال ============ */
+function openModal(html){ $('#modalBody').innerHTML = html; $('#modal').classList.add('show'); }
+function closeModal(){ $('#modal').classList.remove('show'); }
+
+/* ============ تسجيل اليوم ============ */
+function pickWork(worked){
+  const k = $('#dayPicker').value || todayK();
+  if(!worked){
+    state.days[k] = { worked:false, wage:0, tip:0 };
+    save(); render(); return;
+  }
+  openDayModal(k);
+}
+function openDayModal(k){
+  const rec = state.days[k] || {};
+  const wage = rec.wage ?? state.settings.dailyWage;
+  const hasTip = (+rec.tip||0) > 0;
+  openModal(`
+    <h3>تسجيل يوم ${prettyDate(k)}</h3>
+    <p class="hint">روحت الشغل — تمام! 💪</p>
+    <label>اليومية</label>
+    <input id="m_wage" type="number" value="${wage}" inputmode="decimal">
+    <label>خدت تيبس النهارده؟</label>
+    <div class="row gap">
+      <button class="btn ${hasTip?'pri':'ghost'} flex" id="m_yes">نعم 💵</button>
+      <button class="btn ${hasTip?'ghost':'pri'} flex" id="m_no">لا</button>
+    </div>
+    <div id="m_tipbox" style="display:${hasTip?'block':'none'}">
+      <label>مبلغ التيبس كام؟</label>
+      <input id="m_tip" type="number" value="${hasTip?rec.tip:state.settings.defaultTip}" inputmode="decimal">
+    </div>
+    <div class="row gap mt16">
+      <button class="btn pri flex" id="m_save">💾 حفظ</button>
+      <button class="btn ghost flex" onclick="closeModal()">إلغاء</button>
+    </div>
+  `);
+  let tipYes = hasTip;
+  const setTipUI = v => {
+    tipYes = v;
+    $('#m_tipbox').style.display = v ? 'block' : 'none';
+    $('#m_yes').className = 'btn flex ' + (v?'pri':'ghost');
+    $('#m_no').className  = 'btn flex ' + (v?'ghost':'pri');
+  };
+  $('#m_yes').onclick = ()=>setTipUI(true);
+  $('#m_no').onclick  = ()=>setTipUI(false);
+  $('#m_save').onclick = ()=>{
+    const w = +$('#m_wage').value || 0;
+    const tip = tipYes ? (+$('#m_tip').value || 0) : 0;
+    state.days[k] = { worked:true, wage:w, tip };
+    save(); closeModal(); render();
+  };
+}
+function markTodayQuick(worked){
+  if(!worked){ state.days[todayK()] = {worked:false,wage:0,tip:0}; save(); render(); }
+  else openDayModal(todayK());
+}
+function unmarkToday(){
+  delete state.days[todayK()]; save(); render();
+}
+function editTipToday(){
+  const k = todayK();
+  openModal(`
+    <h3>تعديل التيبس — ${prettyDate(k)}</h3>
+    <label>مبلغ التيبس</label>
+    <input id="t_amt" type="number" value="${state.days[k].tip||state.settings.defaultTip}" inputmode="decimal">
+    <div class="row gap mt16">
+      <button class="btn pri flex" id="t_save">حفظ</button>
+      <button class="btn ghost flex" onclick="closeModal()">إلغاء</button>
+    </div>
+  `);
+  $('#t_save').onclick = ()=>{
+    state.days[k].tip = +$('#t_amt').value || 0;
+    save(); closeModal(); render();
+  };
+}
+function delDay(k){
+  if(!confirm('تحذف اليوم ده من السجل؟')) return;
+  delete state.days[k]; save(); render();
+}
+
+/* ============ المصاريف ============ */
+function addExpense(){
+  const date = $('#exDate').value || todayK();
+  const cat = $('#exCat').value;
+  const amount = +$('#exAmount').value;
+  const note = $('#exNote').value.trim();
+  if(!amount || amount<=0){ alert('اكتب المبلغ الأول'); return; }
+  state.expenses.push({ id:uid(), date, cat, amount, note });
+  save();
+  $('#exAmount').value=''; $('#exNote').value='';
+  render();
+}
+function delExpense(id){
+  state.expenses = state.expenses.filter(e=>e.id!==id);
+  save(); render();
+}
+
+/* ============ دخل إضافي ============ */
+function addOtherIncome(){
+  const date = $('#oiDate').value || todayK();
+  const source = $('#oiSource').value.trim();
+  const amount = +$('#oiAmount').value;
+  const note = $('#oiNote').value.trim();
+  if(!source){ alert('اكتب مصدر الدخل'); return; }
+  if(!amount || amount<=0){ alert('اكتب المبلغ'); return; }
+  state.otherIncomes.push({ id:uid(), date, source, amount, note });
+  save();
+  $('#oiSource').value=''; $('#oiAmount').value=''; $('#oiNote').value='';
+  render();
+}
+function delOtherIncome(id){
+  state.otherIncomes = state.otherIncomes.filter(i=>i.id!==id);
+  save(); render();
+}
+
+/* ============ الجمعية ============ */
+function setJamMonthly(v){
+  state.jam3eya.monthly = +v || 0; save(); render();
+}
+function addJamPayment(){
+  const month = $('#jamMonth').value || thisM();
+  const amount = +$('#jamAmount').value;
+  if(!amount || amount<=0){ alert('اكتب مبلغ الدفعة'); return; }
+  state.jam3eya.payments.push({ id:uid(), month, amount, date:todayK() });
+  save(); $('#jamAmount').value=''; render();
+}
+function delJam(id){
+  state.jam3eya.payments = state.jam3eya.payments.filter(p=>p.id!==id);
+  save(); render();
+}
+
+/* ============ المديونيات ============ */
+function addDebt(){
+  const name = $('#dbName').value.trim();
+  const total = +$('#dbTotal').value;
+  const months = Math.max(1, +$('#dbMonths').value || 6);
+  if(!name || !total){ alert('اكتب الاسم والمبلغ'); return; }
+  state.debts.push({ id:uid(), name, total, months, payments:[] });
+  save(); $('#dbName').value=''; $('#dbTotal').value=''; render();
+}
+function openDebtPay(id){
+  const d = state.debts.find(x=>x.id===id);
+  const info = debtInfo(d);
+  openModal(`
+    <h3>سداد من: ${esc(d.name)}</h3>
+    <p class="hint">المتبقي: <b>${fmt(info.remain)}</b> ج.م</p>
+    <label>المبلغ اللي بتسدده</label>
+    <input id="p_amt" type="number" placeholder="0" inputmode="decimal">
+    <label>التاريخ</label>
+    <input id="p_date" type="date" value="${todayK()}">
+    <div class="row gap mt16">
+      <button class="btn pri flex" id="p_save">💾 تسجيل السداد</button>
+      <button class="btn ghost flex" onclick="closeModal()">إلغاء</button>
+    </div>
+  `);
+  $('#p_save').onclick = ()=>{
+    const amount = +$('#p_amt').value;
+    if(!amount || amount<=0){ alert('اكتب المبلغ'); return; }
+    d.payments.push({ id:uid(), amount, date: $('#p_date').value || todayK() });
+    save(); closeModal(); render();
+  };
+}
+function delDebt(id){
+  if(!confirm('تحذف المديونية دي بكل مدفوعاتها؟')) return;
+  state.debts = state.debts.filter(d=>d.id!==id);
+  save(); render();
+}
+
+/* ============ الإعدادات ============ */
+function setSetting(k,v){ state.settings[k] = +v || 0; save(); render(); }
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hesaby-backup-'+todayK()+'.json';
+  a.click();
+}
+function importData(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const p = JSON.parse(e.target.result);
+      const d = DEF();
+      state = {
+        settings:{...d.settings, ...(p.settings||{})},
+        jam3eya:{...d.jam3eya, ...(p.jam3eya||{})},
+        days:p.days||{}, expenses:p.expenses||[], debts:p.debts||[],
+        otherIncomes:p.otherIncomes||[]
+      };
+      save(); render(); alert('تم الاستيراد بنجاح ✅');
+    }catch(err){ alert('الملف مش صحيح'); }
+  };
+  r.readAsText(f);
+}
+function resetAll(){
+  if(!confirm('هتمسح كل البيانات نهائياً. متأكد؟')) return;
+  if(!confirm('آخر تأكيد — مفيش رجوع!')) return;
+  state = DEF(); save(); render();
+}
+
+/* ============ الرسم ============ */
+function render(){
+  renderHome();
+  renderDayTab();
+  renderExpTab();
+  renderJamTab();
+  renderDebtTab();
+  renderExtraTab();
+  renderReports();
+  if(!$('#dayPicker').value) $('#dayPicker').value = todayK();
+  if(!$('#exDate').value) $('#exDate').value = todayK();
+  if(!$('#jamMonth').value) $('#jamMonth').value = thisM();
+  if(!$('#oiDate').value) $('#oiDate').value = todayK();
+  $('#jamMonthly').value = state.jam3eya.monthly;
+  $('#setWage').value = state.settings.dailyWage;
+  $('#setTip').value = state.settings.defaultTip;
+}
+
+function renderHome(){
+  const o = overall();
+  $('#hdrBalance').textContent = fmt(o.balance);
+  $('#homeBalance').textContent = fmt(o.balance) + ' ج.م';
+  $('#hbIncome').textContent = fmt(o.income);
+  $('#hbExp').textContent = fmt(o.exp);
+  $('#hbJam').textContent = fmt(o.jam);
+  $('#hbDebt').textContent = fmt(o.debt);
+  $('#hbOther').textContent = fmt(o.otherInc) + ' ج.م';
+
+  const tk = todayK(), rec = state.days[tk];
+  let html = '';
+  if(!rec){
+    html = `
+      <p class="hint">النهارده ${prettyDate(tk)} — روحت الشغل؟</p>
+      <div class="row gap mt12">
+        <button class="btn pri flex" onclick="markTodayQuick(true)">✅ روحت الشغل</button>
+        <button class="btn ghost flex" onclick="markTodayQuick(false)">🏠 قعدت في البيت</button>
+      </div>`;
+  } else if(rec.worked){
+    html = `
+      <div class="pill ok">✅ روحت الشغل — اليومية ${fmt(rec.wage)} ج.م${rec.tip>0?' + تيبس '+fmt(rec.tip)+' ج.م':''}</div>
+      <div class="row gap mt12">
+        <button class="btn ghost flex" onclick="editTipToday()">💵 ${rec.tip>0?'تعديل التيبس':'ضيف تيبس'}</button>
+        <button class="btn ghost flex" onclick="unmarkToday()">↩️ تراجع</button>
+      </div>`;
+  } else {
+    html = `
+      <div class="pill">🏠 النهارده يوم راحة</div>
+      <div class="row gap mt12">
+        <button class="btn pri flex" onclick="markTodayQuick(true)">✅ روحت الشغل</button>
+        <button class="btn ghost flex" onclick="unmarkToday()">↩️ تراجع</button>
+      </div>`;
+  }
+  $('#todayBox').innerHTML = html;
+
+  const s = statsOf(thisM());
+  $('#hmWork').textContent = s.worked;
+  $('#hmOff').textContent = s.off;
+  $('#hmIncome').textContent = fmt(s.income);
+  $('#hmExp').textContent = fmt(s.expTotal);
+  $('#hmOther').textContent = fmt(s.otherTotal) + ' ج.م';
+
+  const due = state.jam3eya.monthly;
+  const paid = s.jamTotal;
+  $('#hmJamTxt').textContent = fmt(paid) + ' / ' + fmt(due);
+  const pct = due>0 ? Math.min(100, paid/due*100) : 0;
+  const bar = $('#hmJamBar');
+  bar.className = 'bar' + (pct>=100?'':' warn');
+  bar.innerHTML = `<i style="width:${pct}%"></i>`;
+
+  const tips = buildTips();
+  $('#homeTip').innerHTML = tips.length
+    ? `<div class="tip ${tips[0].t}">${tips[0].m}</div>`
+    : `<p class="hint">لسه مفيش بيانات كفاية. ابدأ سجّل يومك 💪</p>`;
+}
+
+function renderDayTab(){
+  const keys = Object.keys(state.days).sort((a,b)=>b.localeCompare(a)).slice(0,40);
+  if(!keys.length){ $('#dayList').innerHTML = '<div class="empty">لسه مسجلتش أي يوم</div>'; return; }
+  $('#dayList').innerHTML = keys.map(k=>{
+    const v = state.days[k];
+    const total = (+v.wage||0)+(+v.tip||0);
+    return `<div class="item">
+      <div>
+        <div class="t">${v.worked?'✅ شغل':'🏠 راحة'} — ${prettyDate(k)}</div>
+        <div class="s">${v.worked?`يومية ${fmt(v.wage)}${v.tip>0?' + تيبس '+fmt(v.tip):''}`:'مفيش دخل'}</div>
+      </div>
+      <div class="row gap">
+        <span class="amt ${v.worked?'in':''}">${v.worked?'+'+fmt(total):'—'}</span>
+        <button class="del" onclick="delDay('${k}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderExpTab(){
+  const s = statsOf(thisM());
+  const byCat = {};
+  s.expenses.forEach(e=>{ byCat[e.cat] = (byCat[e.cat]||0) + (+e.amount||0); });
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  $('#expByCat').innerHTML = cats.length
+    ? cats.map(([c,v])=>{
+        const pct = s.expTotal>0 ? (v/s.expTotal*100) : 0;
+        return `<div style="margin-bottom:10px">
+          <div class="row" style="justify-content:space-between;font-size:13px">
+            <span style="font-weight:600">${esc(c)}</span>
+            <span style="font-weight:700;color:var(--red)">${fmt(v)} ج.م</span>
+          </div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+        </div>`;
+      }).join('') + `<div class="item" style="border-top:2px solid var(--line);margin-top:6px">
+        <div class="t">الإجمالي</div><div class="amt out">${fmt(s.expTotal)} ج.م</div></div>`
+    : '<div class="empty">مفيش مصاريف الشهر ده 👌</div>';
+
+  const list = state.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  $('#expList').innerHTML = list.length
+    ? list.map(e=>`<div class="item">
+        <div><div class="t">${esc(e.cat)}</div>
+        <div class="s">${prettyDate(e.date)}${e.note?' • '+esc(e.note):''}</div></div>
+        <div class="row gap">
+          <span class="amt out">-${fmt(e.amount)}</span>
+          <button class="del" onclick="delExpense('${e.id}')">✕</button>
+        </div></div>`).join('')
+    : '<div class="empty">لسه مفيش مصاريف مسجلة</div>';
+}
+
+function renderJamTab(){
+  const mk = thisM();
+  const s = statsOf(mk);
+  const due = state.jam3eya.monthly;
+  const paid = s.jamTotal;
+  const remain = Math.max(0, due - paid);
+  const pct = due>0 ? Math.min(100, paid/due*100) : 0;
+  $('#jamStatus').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="v">${fmt(due)}</div><div class="k">المطلوب شهرياً</div></div>
+      <div class="stat orange"><div class="v">${fmt(paid)}</div><div class="k">المدفوع (${prettyMonth(mk)})</div></div>
+      <div class="stat ${remain>0?'red':''}"><div class="v">${fmt(remain)}</div><div class="k">المتبقي</div></div>
+      <div class="stat"><div class="v">${state.jam3eya.payments.length}</div><div class="k">عدد الدفعات</div></div>
+    </div>
+    <div class="bar ${pct>=100?'':'warn'}" style="margin-top:12px"><i style="width:${pct}%"></i></div>
+    <p class="hint mt8">${pct>=100?'✅ جمعية الشهر ده اتسددت بالكامل':'⏳ فاضل '+fmt(remain)+' ج.م'}</p>`;
+
+  const pays = state.jam3eya.payments.slice().sort((a,b)=>b.month.localeCompare(a.month));
+  $('#jamList').innerHTML = pays.length
+    ? pays.map(p=>`<div class="item">
+        <div><div class="t">${prettyMonth(p.month)}</div><div class="s">مسجل في ${prettyDate(p.date)}</div></div>
+        <div class="row gap"><span class="amt out">${fmt(p.amount)}</span>
+        <button class="del" onclick="delJam('${p.id}')">✕</button></div></div>`).join('')
+    : '<div class="empty">مفيش دفعات مسجلة</div>';
+}
+
+function renderExtraTab(){
+  const s = statsOf(thisM());
+  $('#oiMonthTotal').innerHTML = `دخل إضافي الشهر ده: <b>${fmt(s.otherTotal)}</b> ج.م`;
+  const list = state.otherIncomes.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50);
+  $('#oiList').innerHTML = list.length
+    ? list.map(i=>`<div class="item">
+        <div><div class="t">${esc(i.source)}</div>
+        <div class="s">${prettyDate(i.date)}${i.note?' • '+esc(i.note):''}</div></div>
+        <div class="row gap"><span class="amt in">+${fmt(i.amount)}</span>
+        <button class="del" onclick="delOtherIncome('${i.id}')">✕</button></div>
+      </div>`).join('')
+    : '<div class="empty">لسه مفيش دخل إضافي مسجل</div>';
+}
+
+function renderDebtTab(){
+  if(!state.debts.length){
+    $('#debtList').innerHTML = '<div class="empty">مفيش مديونيات 👌</div>';
+    $('#debtPlan').innerHTML = '<div class="empty">ضيف مديونية عشان نحسبلك خطة السداد</div>';
+    return;
+  }
+  $('#debtList').innerHTML = state.debts.map(d=>{
+    const i = debtInfo(d);
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div class="row" style="justify-content:space-between">
+        <div class="t" style="font-weight:700">${esc(d.name)}</div>
+        <button class="del" onclick="delDebt('${d.id}')">✕</button>
+      </div>
+      <div class="s" style="font-size:12px;color:var(--muted);margin-top:3px">
+        الكلي ${fmt(d.total)} • المدفوع ${fmt(i.paid)} • المتبقي <b style="color:var(--red)">${fmt(i.remain)}</b>
+      </div>
+      <div class="bar ${i.pct>=100?'':'red'}"><i style="width:${i.pct}%"></i></div>
+      ${i.remain>0?`<button class="btn ghost sm mt8" onclick="openDebtPay('${d.id}')">💵 سجّل سداد</button>`:'<div class="mt8"><span class="pill ok">✅ اتسددت بالكامل</span></div>'}
+    </div>`;
+  }).join('');
+
+  const o = overall();
+  const rows = state.debts.map(d=>{
+    const i = debtInfo(d);
+    if(i.remain<=0) return null;
+    const m = Math.max(1, +d.months||6);
+    return { name:d.name, remain:i.remain, months:m, perMonth:i.remain/m, perWeek:i.remain/m/4.3, perDay:i.remain/m/30 };
+  }).filter(Boolean);
+
+  if(!rows.length){
+    $('#debtPlan').innerHTML = '<div class="tip ok">🎉 مفيش مديونيات متبقية. عاش!</div>';
+    return;
+  }
+  const totalRemain = rows.reduce((s,r)=>s+r.remain,0);
+  const totalPerMonth = rows.reduce((s,r)=>s+r.perMonth,0);
+  $('#debtPlan').innerHTML = `
+    <div class="tip info">إجمالي المتبقي عليك: <b>${fmt(totalRemain)} ج.م</b></div>
+    ${rows.map(r=>`<div class="item">
+      <div><div class="t">${esc(r.name)}</div>
+      <div class="s">${fmt(r.remain)} ج.م على ${r.months} شهور</div></div>
+      <div class="amt out">${fmt(r.perMonth)}/شهر</div>
+    </div>`).join('')}
+    <div class="item" style="border-top:2px solid var(--line)">
+      <div class="t">المطلوب تحوشه شهرياً</div>
+      <div class="amt out">${fmt(totalPerMonth)} ج.م</div>
+    </div>
+    <div class="item"><div class="t">يعني في الأسبوع</div><div class="amt out">${fmt(totalPerMonth/4.3)} ج.م</div></div>
+    <div class="item"><div class="t">يعني في اليوم</div><div class="amt out">${fmt(totalPerMonth/30)} ج.م</div></div>
+    <div class="mt12">
+      <div class="row" style="justify-content:space-between;font-size:13px">
+        <span style="color:var(--muted);font-weight:600">نسبة التحويش من رصيدك الحالي</span>
+        <span style="font-weight:700">${o.balance>0?Math.min(100,Math.round(totalPerMonth/o.balance*100)):0}%</span>
+      </div>
+      <p class="hint mt8">${o.balance >= totalPerMonth
+        ? '✅ رصيدك الحالي يكفي إنك تحوش المبلغ ده الشهر ده.'
+        : '⚠️ رصيدك الحالي أقل من مبلغ التحويش الشهري. حاول تقلل المصاريف أو تمدد فترة السداد.'}</p>
+    </div>`;
+}
+
+function renderReports(){
+  const s = statsOf(thisM());
+  const d = new Date();
+  const daysInM = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const elapsed = d.getDate();
+  const remainDays = daysInM - elapsed;
+  const avgDay = s.worked>0 ? s.income/s.worked : 0;
+  const projIncome = s.income + avgDay*remainDays*0.8;
+  const projExp = elapsed>0 ? (s.expTotal/elapsed)*daysInM : 0;
+  const jamDue = state.jam3eya.monthly;
+
+  $('#repNow').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="v">${s.worked}</div><div class="k">أيام شغل</div></div>
+      <div class="stat"><div class="v">${s.off}</div><div class="k">أيام راحة</div></div>
+      <div class="stat"><div class="v">${fmt(s.wage)}</div><div class="k">اليوميات</div></div>
+      <div class="stat"><div class="v">${fmt(s.tips)}</div><div class="k">التيبس</div></div>
+      <div class="stat"><div class="v">${fmt(s.otherTotal)}</div><div class="k">دخل إضافي</div></div>
+      <div class="stat"><div class="v">${fmt(s.income)}</div><div class="k">إجمالي الدخل</div></div>
+      <div class="stat red"><div class="v">${fmt(s.expTotal)}</div><div class="k">المصاريف</div></div>
+      <div class="stat orange"><div class="v">${fmt(s.jamTotal)}</div><div class="k">الجمعية</div></div>
+      <div class="stat orange"><div class="v">${fmt(s.debtTotal)}</div><div class="k">سداد مديونيات</div></div>
+    </div>
+    <div class="item mt12" style="border-top:2px solid var(--line)">
+      <div class="t">الصافي المتوفر الشهر ده</div>
+      <div class="amt ${s.net>=0?'in':'out'}">${fmt(s.net)} ج.م</div>
+    </div>
+    <div class="sec-title">توقعات آخر الشهر</div>
+    <div class="item"><div class="t">متوسط الدخل في يوم الشغل</div><div class="amt in">${fmt(avgDay)} ج.م</div></div>
+    <div class="item"><div class="t">متوقع دخل الشهر</div><div class="amt in">~${fmt(projIncome)} ج.م</div></div>
+    <div class="item"><div class="t">متوقع مصاريف الشهر</div><div class="amt out">~${fmt(projExp)} ج.م</div></div>
+    <div class="item"><div class="t">متوقع توفر (بعد الجمعية والمصاريف)</div>
+      <div class="amt ${(projIncome-projExp-jamDue)>=0?'in':'out'}">~${fmt(projIncome-projExp-jamDue)} ج.م</div></div>
+  `;
+
+  $('#repHistory').innerHTML = lastMonths(6).map(m=>{
+    const x = statsOf(m);
+    return `<div class="item">
+      <div><div class="t">${prettyMonth(m)}</div>
+      <div class="s">${x.worked} يوم شغل • دخل ${fmt(x.income)} • مصاريف ${fmt(x.expTotal)}</div></div>
+      <div class="amt ${x.net>=0?'in':'out'}">${fmt(x.net)}</div>
+    </div>`;
+  }).join('');
+
+  const tips = buildTips();
+  $('#tipsBox').innerHTML = tips.length
+    ? tips.map(t=>`<div class="tip ${t.t}">${t.m}</div>`).join('')
+    : '<div class="empty">سجّل بيانات أكتر عشان نقدر نديك نصائح مفيدة</div>';
+}
+
+/* ============ محرك النصائح ============ */
+function buildTips(){
+  const out = [];
+  const o = overall();
+  const s = statsOf(thisM());
+  const d = new Date();
+  const daysInM = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const elapsed = d.getDate();
+
+  if(o.balance < 0){
+    out.push({t:'red', m:'⚠️ مصروفاتك أكبر من دخلك لحد دلوقتي. أول حاجة: وقّف المصاريف غير الضرورية، وابدأ تسجل كل جنيه بتصرفه.'});
+  } else if(s.income > 0){
+    const r = s.expTotal/s.income;
+    if(r > 0.7) out.push({t:'red', m:`⚠️ بتصرف ${Math.round(r*100)}% من دخلك. ده رقم عالي — حاول تنزله تحت 50% عشان تقدر تحوش.`});
+    else if(r > 0.5) out.push({t:'warn', m:`🙂 بتصرف ${Math.round(r*100)}% من دخلك. كويس بس ممكن أحسن — لو نزلت 10% هتوفر ${fmt(s.income*0.1)} ج.م زيادة.`});
+    else out.push({t:'ok', m:`✅ ممتاز! بتصرف ${Math.round(r*100)}% بس من دخلك وبتوفر ${Math.round((1-r)*100)}%.`});
+  }
+
+  const jamRemain = Math.max(0, state.jam3eya.monthly - s.jamTotal);
+  if(jamRemain > 0){
+    const daysLeft = daysInM - elapsed;
+    out.push({t:'warn', m:`📅 فاضل ${fmt(jamRemain)} ج.م من جمعية ${prettyMonth(thisM())}، وعندك ${daysLeft} يوم. لو حوشت ${fmt(jamRemain/Math.max(1,daysLeft))} ج.م في اليوم هتلحقها.`});
+  } else if(state.jam3eya.monthly > 0){
+    out.push({t:'ok', m:'✅ جمعية الشهر ده متسددة بالكامل. برافو! 👏'});
+  }
+
+  let totalRemain = 0;
+  state.debts.forEach(x=>{ totalRemain += debtInfo(x).remain; });
+  if(totalRemain > 0){
+    const months = 6;
+    const perMonth = totalRemain/months;
+    out.push({t:'red', m:`💳 عليك مديونيات متبقية <b>${fmt(totalRemain)} ج.م</b>. لو عايز تخلص منها في ${months} شهور، لازم تحوش <b>${fmt(perMonth)} ج.م</b> شهرياً.`});
+    out.push({t:'info', m:`💡 يعني ${fmt(perMonth/4.3)} ج.م في الأسبوع، أو ${fmt(perMonth/30)} ج.م في اليوم. لو خدت ${fmt(perMonth/30)} ج.م بس من كل يومية وحوشتهم، هتخلص في ${months} شهور.`});
+    if(o.balance >= perMonth){
+      out.push({t:'ok', m:'✅ رصيدك الحالي يكفي إنك تبدأ الخطة دي الشهر ده.'});
+    } else {
+      out.push({t:'warn', m:'⚠️ رصيدك الحالي أقل من مبلغ التحويش الشهري. ممكن تمدد الفترة لـ 9 أو 12 شهر عشان يكون أسهل عليك.'});
+    }
+  } else if(state.debts.length){
+    out.push({t:'ok', m:'🎉 مفيش مديونيات متبقية. عاش جداً!'});
+  }
+
+  if(s.worked > 0){
+    const avg = s.income/s.worked;
+    out.push({t:'info', m:`📈 متوسط دخلك في يوم الشغل ${fmt(avg)} ج.م. لو اشتغلت 26 يوم في الشهر، متوقع دخل ~${fmt(avg*26)} ج.م.`});
+    const workRate = elapsed>0 ? s.worked/elapsed : 0;
+    if(workRate < 0.6) out.push({t:'warn', m:`⚠️ بتروح الشغل ${Math.round(workRate*100)}% من الأيام. كل يوم زيادة بيفرق ${fmt(avg)} ج.م في دخلك الشهري.`});
+  }
+
+  if(s.otherTotal > 0){
+    out.push({t:'ok', m:`💰 دخل إضافي الشهر ده ${fmt(s.otherTotal)} ج.م — حاول تحوش جزء منه على طول قبل ما يتصرف.`});
+  }
+
+  const emergencyTarget = state.settings.dailyWage * 10;
+  out.push({t:'info', m:`🛟 حاول تحوش <b>${fmt(emergencyTarget)} ج.م</b> (حوالي 10 يوميات) كصندوق طوارئ قبل أي حاجة تانية — ده اللي هيحميك من الاستلاف لما يحصل ظرف.`});
+
+  out.push({t:'info', m:'💡 قاعدة بسيطة: من كل يومية 400 ج.م، حط 40 ج.م (10%) على جنب أول ما تقبض، قبل ما تصرف أي حاجة.'});
+
+  if(s.income === 0 && elapsed > 5){
+    out.push({t:'warn', m:'📝 لسه مسجلتش دخل الشهر ده. ابدأ سجّل أيامك عشان الأرقام تبقى حقيقية.'});
+  }
+
+  return out;
+}
+
+/* ============ PWA — Install Prompt ============ */
+let deferredPrompt = null;
+const banner = document.getElementById('installBanner');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if(!localStorage.getItem('installDismissed')){
+    banner.classList.add('show');
+  }
+});
+
+function doInstall(){
+  if(!deferredPrompt){
+    alert('لو مش لاقي زرار التثبيت، افتح قائمة المتصفح واختار "إضافة إلى الشاشة الرئيسية"');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    if(choice.outcome === 'accepted') banner.classList.remove('show');
+    deferredPrompt = null;
+  });
+}
+function dismissInstall(){
+  banner.classList.remove('show');
+  localStorage.setItem('installDismissed','1');
+}
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('show');
+  console.log('تم تثبيت التطبيق ✅');
+});
+
+/* ============ Service Worker ============ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ SW registered:', reg.scope))
+      .catch(err => console.warn('❌ SW failed:', err));
+  });
+}
+
+/* ============ تشغيل ============ */
+render();
+</script>
+</body>
+</html>

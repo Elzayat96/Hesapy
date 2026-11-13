@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مولّد الأيقونات — حسابي</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#eef3f1;padding:30px;text-align:center;color:#1f2d2a}
+  h1{font-size:20px;margin-bottom:8px;color:#0f9d76}
+  p{font-size:14px;color:#666;margin-bottom:24px;line-height:1.7}
+  .preview{display:flex;gap:20px;justify-content:center;margin:30px 0;flex-wrap:wrap}
+  .preview div{text-align:center}
+  .preview canvas{display:block;border-radius:20%;box-shadow:0 4px 16px rgba(15,157,118,.3);background:#0f9d76}
+  .preview span{display:block;font-size:12px;color:#666;margin-top:8px;font-weight:600}
+  button{background:#0f9d76;color:#fff;border:none;padding:14px 28px;font-size:16px;font-weight:700;border-radius:12px;cursor:pointer;font-family:inherit;margin:6px}
+  button:hover{background:#0b7a5b}
+  button:active{transform:scale(.97)}
+  .note{background:#fff;padding:16px;border-radius:12px;max-width:500px;margin:24px auto;text-align:right;font-size:13px;line-height:1.8;color:#444}
+</style>
+</head>
+<body>
+
+<h1>🎨 مولّد أيقونات التطبيق</h1>
+<p>اضغط الزرار تحت عشان تنزّل الأيقونتين وتحطهم في فولدر `hesaby` جنب باقي الملفات.</p>
+
+<div class="preview">
+  <div>
+    <canvas id="c192" width="192" height="192"></canvas>
+    <span>icon-192.png</span>
+  </div>
+  <div>
+    <canvas id="c512" width="512" height="512"></canvas>
+    <span>icon-512.png</span>
+  </div>
+</div>
+
+<button onclick="downloadAll()">⬇️ تحميل الأيقونتين</button>
+
+<div class="note">
+  <b>طريقة الاستخدام:</b><br>
+  1. اضغط "تحميل الأيقونتين"<br>
+  2. هتفتح نافذتين تنزيل — اقبلهم<br>
+  3. حط الملفين في فولدر المشروع جنب index.html<br>
+  4. تمام ✅
+</div>
+
+<script>
+function drawIcon(canvas){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+
+  // خلفية متدرجة
+  const g = ctx.createLinearGradient(0, 0, W, W);
+  g.addColorStop(0, '#0f9d76');
+  g.addColorStop(1, '#0b7a5b');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, W);
+
+  // دايرة داخلية فاتحة
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.arc(W/2, W/2, W*0.38, 0, Math.PI*2);
+  ctx.fill();
+
+  // رمز الجنيه EGP
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${W*0.42}px "Segoe UI", Tahoma, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ج.م', W/2, W*0.52);
+
+  // لمعة صغيرة فوق
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.arc(W*0.72, W*0.28, W*0.06, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ارسم المعاينة
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+
+function download(canvas, filename){
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/png');
+}
+
+function downloadAll(){
+  download(document.getElementById('c192'), 'icon-192.png');
+  setTimeout(() => download(document.getElementById('c512'), 'icon-512.png'), 400);
+}
+</script>
+</body>
+</html>
